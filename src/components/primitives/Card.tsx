@@ -20,7 +20,7 @@ export const Card: React.FC<CardProps> = ({
 }) => {
   return (
     <div
-      className={`bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-lg overflow-hidden shadow-2xs ${className}`}
+      className={`bg-[var(--color-bg-surface)] border border-[var(--color-border-default)] rounded-xl overflow-hidden shadow-2xs ${className}`}
       {...props}
     >
       {(title || headerAction) && (

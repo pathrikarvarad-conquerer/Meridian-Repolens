@@ -33,11 +33,11 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
     };
 
     const variantStyles = {
-      primary: 'bg-neutral-900 text-white hover:bg-neutral-800 dark:bg-neutral-100 dark:text-neutral-900 dark:hover:bg-neutral-200 border border-transparent shadow-xs',
-      secondary: 'bg-neutral-100 text-neutral-800 hover:bg-neutral-200 dark:bg-neutral-800 dark:text-neutral-200 dark:hover:bg-neutral-700 border border-transparent',
-      outline: 'bg-transparent text-neutral-800 dark:text-neutral-200 border border-neutral-300 dark:border-neutral-700 hover:bg-neutral-100 dark:hover:bg-neutral-850',
-      ghost: 'bg-transparent text-neutral-700 dark:text-neutral-300 hover:bg-neutral-100 dark:hover:bg-neutral-800 border border-transparent',
-      danger: 'bg-rose-600 text-white hover:bg-rose-700 border border-transparent shadow-xs'
+      primary: 'bg-[var(--color-brand-primary)] text-white hover:bg-[var(--color-brand-primary-hover)] border border-transparent shadow-xs font-semibold',
+      secondary: 'bg-[var(--color-bg-surface-2)] text-[var(--color-text-primary)] hover:bg-[var(--color-bg-surface-3)] border border-[var(--color-border-default)]',
+      outline: 'bg-transparent text-[var(--color-text-primary)] border border-[var(--color-border-default)] hover:bg-[var(--color-bg-surface-2)]',
+      ghost: 'bg-transparent text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] hover:bg-[var(--color-bg-surface-2)] border border-transparent',
+      danger: 'bg-[var(--color-status-failed)] text-white hover:opacity-90 border border-transparent shadow-xs'
     };
 
     return (

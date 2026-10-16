@@ -29,6 +29,52 @@ export interface AnalysisStage {
   evidenceCount: number;
 }
 
+export interface LanguageStat {
+  name: string;
+  bytes: number;
+  percentage: number;
+  color?: string;
+}
+
+export interface RepoContributor {
+  login: string;
+  avatarUrl: string;
+  contributions: number;
+  profileUrl: string;
+}
+
+export interface RepoCommit {
+  sha: string;
+  message: string;
+  author: string;
+  avatarUrl?: string;
+  date: string;
+  url?: string;
+}
+
+export interface RepoHealthMetric {
+  name: string;
+  score: number;
+  max: number;
+  status: 'good' | 'warning' | 'needs-attention';
+  description: string;
+}
+
+export interface RepoHealthScore {
+  score: number;
+  grade: 'A+' | 'A' | 'B' | 'C' | 'D';
+  metrics: RepoHealthMetric[];
+}
+
+export interface CodebaseScaleStats {
+  totalFiles: number;
+  totalDirectories: number;
+  estimatedLoc: number;
+  averageFileDepth: number;
+  openPullRequestsCount: number;
+  daysSinceLastCommit: number;
+}
+
 export interface RepositoryMetadata {
   id: string;
   owner: string;
@@ -40,13 +86,40 @@ export interface RepositoryMetadata {
   commitSha: string;
   primaryLanguage: string;
   license: string;
+  licenseSpdxId?: string;
   stars: number;
   forks: number;
+  watchersCount: number;
   openIssuesCount: number;
+  sizeKb: number;
+  createdAt: string;
+  updatedAt: string;
+  pushedAt: string;
   analyzedAt: string;
   analysisStatus: 'idle' | 'analyzing' | 'completed' | 'partial_failure' | 'failed';
   stages: AnalysisStage[];
   tags: string[];
+  languages: LanguageStat[];
+  latestRelease?: {
+    tagName: string;
+    name: string;
+    publishedAt: string;
+  };
+  latestCommit?: {
+    sha: string;
+    message: string;
+    author: string;
+    date: string;
+  };
+  hasWiki: boolean;
+  hasDiscussions: boolean;
+  isArchived: boolean;
+  ciWorkflowsDetected: string[];
+  manifestType: string;
+  contributors?: RepoContributor[];
+  recentCommits?: RepoCommit[];
+  healthScore?: RepoHealthScore;
+  codebaseStats?: CodebaseScaleStats;
 }
 
 export interface TechStackItem {
@@ -68,7 +141,7 @@ export interface DirectoryInfo {
 export interface ArchitectureComponent {
   id: string;
   name: string;
-  type: 'presentation' | 'service' | 'data' | 'routing' | 'infrastructure';
+  type: 'presentation' | 'service' | 'data' | 'routing' | 'infrastructure' | 'core';
   description: string;
   entryFiles: string[];
   evidence: Evidence;
@@ -161,6 +234,9 @@ export interface RecommendedIssue {
   assignedTo?: string;
   status: 'open' | 'closed';
   uncertaintyNotes?: string;
+  commentsCount?: number;
+  createdAt?: string;
+  author?: string;
 }
 
 export interface ChatMessage {
@@ -170,6 +246,11 @@ export interface ChatMessage {
   timestamp: string;
   evidenceReferences?: Evidence[];
   suggestedFollowUps?: string[];
+  tokensUsed?: {
+    promptTokens: number;
+    completionTokens: number;
+    totalTokens: number;
+  };
 }
 
 export interface CodebaseNode {
@@ -182,14 +263,23 @@ export interface CodebaseNode {
   exports: string[];
   importsCount: number;
   importedByCount: number;
+  x?: number;
+  y?: number;
+  status?: 'stable' | 'active' | 'legacy';
+  layer?: number; // 0: Entry/UI, 1: Controllers/Services, 2: Core/Domain, 3: Engine/Data, 4: Utils/Config
+  complexityScore?: number; // 1-100
+  language?: string;
+  isEntryPoint?: boolean;
 }
 
 export interface CodebaseEdge {
   id: string;
   source: string;
   target: string;
-  type: 'imports' | 'implements' | 'configures' | 'calls';
+  type: 'imports' | 'implements' | 'configures' | 'calls' | 'renders';
   evidence: Evidence;
+  label?: string;
+  strength?: number;
 }
 
 export interface CodebaseGraphData {

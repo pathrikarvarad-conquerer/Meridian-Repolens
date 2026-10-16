@@ -3,26 +3,32 @@ import { useNavigate } from 'react-router-dom';
 import { 
   Search, 
   ArrowRight, 
-  ShieldCheck, 
-  Stethoscope, 
-  Target, 
-  Download, 
-  Github, 
+  CheckCircle2, 
+  ExternalLink,
+  Code2,
   Sparkles,
-  GitCommit,
-  CheckCircle2,
-  Clock,
-  Layers
+  GitBranch,
+  Layers,
+  FileCode2,
+  Info,
+  Star,
+  ChevronRight,
+  BookOpen,
+  Compass,
+  Zap,
+  Terminal
 } from 'lucide-react';
 import { useRepo } from '../context/RepoContext';
 import { useToast } from '../context/ToastContext';
+import { useTheme } from '../context/ThemeContext';
 import { parseGitHubUrl } from '../services/api';
 
 export const HomePage: React.FC = () => {
   const [repoInput, setRepoInput] = useState('');
   const [inputError, setInputError] = useState<string | null>(null);
-  const { analyzeRepo, isAnalyzing, analysisProgress, recentRepos, loadSampleRepo, cancelAnalysis } = useRepo();
+  const { analyzeRepo, isAnalyzing, analysisProgress, loadSampleRepo, cancelAnalysis } = useRepo();
   const { addToast } = useToast();
+  const { resolvedTheme } = useTheme();
   const navigate = useNavigate();
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -40,213 +46,444 @@ export const HomePage: React.FC = () => {
       addToast({
         type: 'success',
         title: 'Repository Analyzed',
-        message: 'Successfully mapped architecture, setup requirements, and issues.'
+        message: 'Loaded architecture, setup doctor, and issue intelligence.'
       });
       navigate('/overview');
     }
   };
 
-  const handleSelectSample = (fullName: string) => {
+  const handleSelectRepository = (fullName: string) => {
     loadSampleRepo(fullName);
     addToast({
       type: 'info',
       title: 'Repository Loaded',
-      message: `Switched context to ${fullName}`
+      message: `Analyzing and exploring ${fullName}`
     });
     navigate('/overview');
   };
 
+  // Popular repositories list matching the screenshot
+  const popularRepositories = [
+    {
+      fullName: 'facebook/react',
+      owner: 'facebook',
+      name: 'react',
+      description: 'A JavaScript library for building user interfaces',
+      language: 'JavaScript',
+      languageColor: 'bg-amber-500/15 text-amber-600 dark:text-amber-400 border-amber-500/30',
+      stars: '222k',
+      updated: '2 days ago',
+      iconBg: 'bg-cyan-500/20 text-cyan-600 dark:text-cyan-400'
+    },
+    {
+      fullName: 'microsoft/vscode',
+      owner: 'microsoft',
+      name: 'vscode',
+      description: 'Visual Studio Code editor',
+      language: 'TypeScript',
+      languageColor: 'bg-blue-500/15 text-blue-600 dark:text-blue-400 border-blue-500/30',
+      stars: '168k',
+      updated: '3 days ago',
+      iconBg: 'bg-blue-500/20 text-blue-600 dark:text-blue-400'
+    },
+    {
+      fullName: 'tensorflow/tensorflow',
+      owner: 'tensorflow',
+      name: 'tensorflow',
+      description: 'Machine learning framework',
+      language: 'Python',
+      languageColor: 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border-emerald-500/30',
+      stars: '150k',
+      updated: '4 days ago',
+      iconBg: 'bg-orange-500/20 text-orange-600 dark:text-orange-400'
+    },
+    {
+      fullName: 'vercel/next.js',
+      owner: 'vercel',
+      name: 'next.js',
+      description: 'The React Framework for production',
+      language: 'TypeScript',
+      languageColor: 'bg-blue-500/15 text-blue-600 dark:text-blue-400 border-blue-500/30',
+      stars: '124k',
+      updated: '5 days ago',
+      iconBg: 'bg-neutral-800 text-white dark:bg-neutral-200 dark:text-neutral-900'
+    },
+    {
+      fullName: 'tailwindlabs/tailwindcss',
+      owner: 'tailwindlabs',
+      name: 'tailwindcss',
+      description: 'A utility-first CSS framework for rapid UI development',
+      language: 'TypeScript',
+      languageColor: 'bg-cyan-500/15 text-cyan-600 dark:text-cyan-400 border-cyan-500/30',
+      stars: '84k',
+      updated: '1 day ago',
+      iconBg: 'bg-cyan-500/20 text-cyan-600 dark:text-cyan-400'
+    }
+  ];
+
   return (
-    <div className="max-w-4xl mx-auto py-8 sm:py-12 px-4 space-y-12">
-      {/* Hero Section */}
-      <div className="text-center space-y-4">
-        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-neutral-100 dark:bg-neutral-850 border border-neutral-200 dark:border-neutral-800 text-xs font-medium text-neutral-700 dark:text-neutral-300">
-          <ShieldCheck className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
-          <span>Evidence-Based Codebase Intelligence</span>
-        </div>
+    <div className="space-y-16 pb-16">
+      {/* Hero Section matching the Screenshot */}
+      <section className="relative pt-6 sm:pt-10">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-10 items-center">
+          
+          {/* Left Hero Column */}
+          <div className="lg:col-span-7 space-y-6">
+            <h1 className="text-4xl sm:text-5xl lg:text-6xl font-black tracking-tight text-[var(--color-text-primary)] leading-[1.1]">
+              Understand Your <br />
+              Codebase,{' '}
+              <span className="text-[var(--color-brand-primary)]">
+                Faster
+              </span>
+            </h1>
 
-        <h1 className="text-3xl sm:text-4xl md:text-5xl font-extrabold tracking-tight text-neutral-900 dark:text-neutral-100 text-balance">
-          Understand your codebase, faster.
-        </h1>
+            <p className="text-base sm:text-lg text-[var(--color-text-secondary)] leading-relaxed max-w-xl text-pretty font-normal">
+              RepoLens helps you analyze public GitHub repositories, find key issues, understand project structure, and set up your project with AI — all in one place.
+            </p>
 
-        <p className="max-w-2xl mx-auto text-sm sm:text-base text-neutral-600 dark:text-neutral-400 leading-relaxed text-pretty">
-          RepoLens performs verified static analysis on repositories to extract architectural entry points, validate setup instructions against actual manifests, and map beginner-friendly issues.
-        </p>
-      </div>
+            {/* Instant Repository Analysis Input Form */}
+            <form onSubmit={handleSubmit} className="space-y-2 max-w-xl">
+              <div className="flex flex-col sm:flex-row gap-2">
+                <div className="relative flex-1">
+                  <input
+                    type="text"
+                    value={repoInput}
+                    onChange={(e) => {
+                      setRepoInput(e.target.value);
+                      if (inputError) setInputError(null);
+                    }}
+                    disabled={isAnalyzing}
+                    placeholder="Enter GitHub URL (e.g. facebook/react)"
+                    className={`w-full h-12 pl-4 pr-4 rounded-xl text-sm bg-[var(--color-bg-surface)] border shadow-xs transition-all text-[var(--color-text-primary)] placeholder:text-[var(--color-text-muted)] ${
+                      inputError
+                        ? 'border-[var(--color-status-failed)] focus:ring-1 focus:ring-[var(--color-status-failed)]'
+                        : 'border-[var(--color-border-default)] focus:border-[var(--color-brand-primary)] focus:ring-2 focus:ring-[var(--color-brand-focus)]/20'
+                    }`}
+                  />
+                </div>
 
-      {/* Main Analysis Input Box */}
-      <div className="bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-xl p-5 sm:p-6 shadow-sm">
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="space-y-2">
-            <label htmlFor="repo-url-input" className="block text-xs font-semibold text-neutral-700 dark:text-neutral-300">
-              GitHub Repository URL or <code className="font-mono text-neutral-600 dark:text-neutral-400">owner/repo</code>
-            </label>
-            <div className="flex flex-col sm:flex-row gap-2.5">
-              <div className="relative flex-1">
-                <Github className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-400 pointer-events-none" />
-                <input
-                  id="repo-url-input"
-                  type="text"
-                  value={repoInput}
-                  onChange={(e) => {
-                    setRepoInput(e.target.value);
-                    if (inputError) setInputError(null);
-                  }}
+                <button
+                  type="submit"
                   disabled={isAnalyzing}
-                  placeholder="https://github.com/facebook/react or facebook/react"
-                  className={`w-full h-11 pl-10 pr-4 rounded-lg text-sm bg-neutral-50 dark:bg-neutral-850 border transition-all text-neutral-900 dark:text-neutral-100 placeholder:text-neutral-400 ${
-                    inputError
-                      ? 'border-rose-500 focus:ring-1 focus:ring-rose-500'
-                      : 'border-neutral-300 dark:border-neutral-700 focus:border-neutral-900 dark:focus:border-neutral-100'
-                  }`}
-                />
+                  className="h-12 px-6 rounded-xl font-semibold text-sm bg-[var(--color-brand-primary)] text-white hover:bg-[var(--color-brand-primary-hover)] transition-all flex items-center justify-center gap-2 shadow-xs cursor-pointer disabled:opacity-50 shrink-0"
+                >
+                  <span>{isAnalyzing ? 'Analyzing...' : 'Analyze'}</span>
+                  <ArrowRight className="w-4 h-4" />
+                </button>
               </div>
 
+              {inputError && (
+                <p className="text-xs text-[var(--color-status-failed-text)] bg-[var(--color-status-failed-bg)] p-2 rounded-lg border border-[var(--color-status-failed-border)]" role="alert">
+                  {inputError}
+                </p>
+              )}
+            </form>
+
+            {/* Progress Bar when Analysis is Active */}
+            {isAnalyzing && analysisProgress && (
+              <div className="max-w-xl p-4 rounded-xl border border-[var(--color-border-default)] bg-[var(--color-bg-surface)] space-y-2.5 shadow-xs">
+                <div className="flex items-center justify-between text-xs">
+                  <span className="font-semibold text-[var(--color-text-primary)] flex items-center gap-2">
+                    <span className="w-2 h-2 rounded-full bg-[var(--color-brand-primary)] animate-ping" />
+                    <span>{analysisProgress.stageTitle}</span>
+                  </span>
+                  <button
+                    onClick={cancelAnalysis}
+                    className="text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)] cursor-pointer text-xs"
+                  >
+                    Cancel
+                  </button>
+                </div>
+                <div className="w-full bg-[var(--color-bg-surface-3)] h-1.5 rounded-full overflow-hidden">
+                  <div
+                    className="bg-[var(--color-brand-primary)] h-full transition-all duration-300 rounded-full"
+                    style={{ width: `${Math.min(100, (analysisProgress.stageIndex + 1) * 20)}%` }}
+                  />
+                </div>
+              </div>
+            )}
+
+            {/* Hero Buttons Matching Screenshot */}
+            <div className="flex flex-wrap items-center gap-3 pt-1">
               <button
-                type="submit"
-                disabled={isAnalyzing}
-                className="h-11 px-6 rounded-lg text-sm font-semibold bg-neutral-900 text-white dark:bg-neutral-100 dark:text-neutral-900 hover:bg-neutral-800 dark:hover:bg-neutral-200 transition-colors flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed shrink-0"
+                type="button"
+                onClick={() => {
+                  const elem = document.getElementById('popular-repos');
+                  elem?.scrollIntoView({ behavior: 'smooth' });
+                }}
+                className="h-11 px-5 rounded-xl font-semibold text-sm bg-[var(--color-brand-primary)] text-white hover:bg-[var(--color-brand-primary-hover)] shadow-xs transition-all flex items-center gap-2 cursor-pointer"
               >
-                <span>{isAnalyzing ? 'Analyzing...' : 'Analyze repository'}</span>
+                <span>Explore Repositories</span>
                 <ArrowRight className="w-4 h-4" />
               </button>
-            </div>
 
-            {inputError && (
-              <p className="text-xs text-rose-600 dark:text-rose-400 font-medium" role="alert">
-                {inputError}
-              </p>
-            )}
-          </div>
-        </form>
-
-        {/* Progress Display while analyzing */}
-        {isAnalyzing && analysisProgress && (
-          <div className="mt-6 pt-5 border-t border-neutral-100 dark:border-neutral-800 space-y-3">
-            <div className="flex items-center justify-between text-xs">
-              <div className="flex items-center gap-2 text-neutral-700 dark:text-neutral-300 font-medium">
-                <span className="w-2 h-2 rounded-full bg-blue-600 animate-ping" />
-                <span>{analysisProgress.stageTitle}</span>
-              </div>
               <button
-                onClick={cancelAnalysis}
-                className="text-neutral-500 hover:text-neutral-800 dark:hover:text-neutral-200 cursor-pointer"
+                type="button"
+                onClick={() => navigate('/overview')}
+                className="h-11 px-5 rounded-xl font-semibold text-sm bg-[var(--color-bg-surface)] border border-[var(--color-border-default)] hover:bg-[var(--color-bg-surface-2)] text-[var(--color-text-primary)] transition-all cursor-pointer shadow-2xs"
               >
-                Cancel
+                View Documentation
               </button>
             </div>
-            <div className="w-full bg-neutral-100 dark:bg-neutral-800 h-1.5 rounded-full overflow-hidden">
-              <div
-                className="bg-blue-600 h-full transition-all duration-300 rounded-full"
-                style={{ width: `${Math.min(100, (analysisProgress.stageIndex + 1) * 20)}%` }}
-              />
+          </div>
+
+          {/* Right Hero Column: Code Window & Floating Orbiting Badges */}
+          <div className="lg:col-span-5 relative flex items-center justify-center min-h-[380px]">
+            {/* Ambient background glow */}
+            <div 
+              className={`absolute inset-0 pointer-events-none rounded-3xl ${
+                resolvedTheme === 'dark' ? 'hero-glow-dark' : 'hero-glow-light'
+              }`}
+            />
+
+            {/* Simulated Code Card */}
+            <div className="relative w-full max-w-md rounded-2xl border border-[#233650] bg-[#0E1A2B] text-[#E8EEF8] p-5 shadow-2xl space-y-4">
+              {/* Window Header */}
+              <div className="flex items-center justify-between pb-3 border-b border-[#233650]">
+                <div className="flex items-center gap-2">
+                  <div className="w-6 h-6 rounded-md bg-[#1E2E44] flex items-center justify-center text-white">
+                    <Code2 className="w-3.5 h-3.5 text-[#4D7CFF]" />
+                  </div>
+                  <span className="font-mono text-xs text-[#B0BED2] font-semibold">repolens-analyzer.ts</span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <span className="w-2.5 h-2.5 rounded-full bg-rose-500/80" />
+                  <span className="w-2.5 h-2.5 rounded-full bg-amber-500/80" />
+                  <span className="w-2.5 h-2.5 rounded-full bg-emerald-500/80" />
+                </div>
+              </div>
+
+              {/* Code Editor Simulated Lines */}
+              <div className="font-mono text-[11px] leading-relaxed space-y-2 py-1 select-none">
+                <div className="text-[#8798B2]">
+                  <span className="text-[#4D7CFF]">import</span> &#123; createEngine &#125; <span className="text-[#4D7CFF]">from</span> <span className="text-emerald-400">'@repolens/core'</span>;
+                </div>
+                <div className="text-[#8798B2]">
+                  <span className="text-[#4D7CFF]">const</span> repo = <span className="text-[#4D7CFF]">await</span> engine.ingest(<span className="text-emerald-400">'facebook/react'</span>);
+                </div>
+                <div className="pl-3 border-l-2 border-[#314A6E] space-y-1 my-2 text-xs">
+                  <div className="text-emerald-400">✓ Manifest verified: yarn workspaces</div>
+                  <div className="text-blue-400">✓ Entrypoint: packages/react/index.js</div>
+                  <div className="text-purple-400">✓ 3 curated first issues mapped</div>
+                </div>
+                <div className="text-[#B0BED2]">
+                  <span className="text-[#4D7CFF]">return</span> repo.generateOnboardingGuide();
+                </div>
+              </div>
+
+              <div className="pt-2 border-t border-[#233650] flex items-center justify-between text-[10px] font-mono text-[#8798B2]">
+                <span>Status: Deterministic check passed</span>
+                <span className="text-[#55D6A0]">● Ready</span>
+              </div>
             </div>
-            <p className="text-[11px] text-neutral-500">
-              Stage {analysisProgress.stageIndex + 1} of 5 · Inspecting package manifests and commit evidence
+
+            {/* Floating Orbiting Badges matching Screenshot */}
+            {/* 1. Top Right: Project Analysis */}
+            <button
+              onClick={() => navigate('/overview')}
+              className="absolute -top-3 -right-2 sm:right-2 flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-[var(--color-border-default)] bg-[var(--color-bg-surface)] text-[var(--color-text-primary)] shadow-md text-xs font-semibold cursor-pointer hover:scale-105 transition-transform"
+            >
+              <Sparkles className="w-3.5 h-3.5 text-[var(--color-brand-primary)]" />
+              <span>Project Analysis</span>
+            </button>
+
+            {/* 2. Middle Right: Issues & Insights */}
+            <button
+              onClick={() => navigate('/issues')}
+              className="absolute top-28 -right-3 sm:-right-4 flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-[var(--color-border-default)] bg-[var(--color-bg-surface)] text-[var(--color-text-primary)] shadow-md text-xs font-semibold cursor-pointer hover:scale-105 transition-transform"
+            >
+              <Info className="w-3.5 h-3.5 text-[var(--color-brand-primary)]" />
+              <span>Issues & Insights</span>
+            </button>
+
+            {/* 3. Bottom Left: Dependencies */}
+            <button
+              onClick={() => navigate('/graph')}
+              className="absolute bottom-2 -left-2 sm:-left-4 flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-[var(--color-border-default)] bg-[var(--color-bg-surface)] text-[var(--color-text-primary)] shadow-md text-xs font-semibold cursor-pointer hover:scale-105 transition-transform"
+            >
+              <Layers className="w-3.5 h-3.5 text-[var(--color-brand-primary)]" />
+              <span>Dependencies</span>
+            </button>
+
+            {/* 4. Bottom Right: AI Assistant */}
+            <button
+              onClick={() => navigate('/assistant')}
+              className="absolute -bottom-3 right-6 sm:right-10 flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-[var(--color-border-default)] bg-[var(--color-bg-surface)] text-[var(--color-text-primary)] shadow-md text-xs font-semibold cursor-pointer hover:scale-105 transition-transform"
+            >
+              <Sparkles className="w-3.5 h-3.5 text-[var(--color-status-partial)]" />
+              <span>AI Assistant</span>
+            </button>
+          </div>
+        </div>
+      </section>
+
+      {/* Key Features Section matching the Screenshot */}
+      <section className="space-y-6 pt-4">
+        <div>
+          <h2 className="text-2xl font-bold tracking-tight text-[var(--color-text-primary)]">
+            Key Features
+          </h2>
+          <p className="mt-1 text-sm text-[var(--color-text-muted)]">
+            Everything you need to get started with any open-source project.
+          </p>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          {/* Card 1: Repository Analysis */}
+          <div
+            onClick={() => navigate('/overview')}
+            className="p-5 rounded-2xl border border-[var(--color-border-default)] bg-[var(--color-bg-surface)] hover:border-[var(--color-brand-primary)] hover:shadow-sm transition-all cursor-pointer space-y-3 group"
+          >
+            <div className="w-10 h-10 rounded-xl bg-[var(--color-brand-primary-soft)] text-[var(--color-brand-primary)] flex items-center justify-center">
+              <Search className="w-5 h-5 stroke-[2.2]" />
+            </div>
+            <h3 className="font-bold text-base text-[var(--color-text-primary)] group-hover:text-[var(--color-brand-primary)] transition-colors">
+              Repository Analysis
+            </h3>
+            <p className="text-xs text-[var(--color-text-secondary)] leading-relaxed">
+              Get a complete overview of any public GitHub repository with AI-powered insights.
             </p>
           </div>
-        )}
 
-        {/* Quick Sample Repositories */}
-        <div className="mt-5 pt-4 border-t border-neutral-100 dark:border-neutral-800">
-          <span className="text-xs text-neutral-500 font-medium mr-2">
-            Try featured open-source repositories:
-          </span>
-          <div className="inline-flex flex-wrap gap-2 mt-2">
-            {[
-              { name: 'facebook/react', label: 'facebook/react', lang: 'JavaScript' },
-              { name: 'tailwindlabs/tailwindcss', label: 'tailwindlabs/tailwindcss', lang: 'TypeScript' }
-            ].map((sample) => (
-              <button
-                key={sample.name}
-                type="button"
-                onClick={() => handleSelectSample(sample.name)}
-                className="text-xs font-mono px-2.5 py-1 rounded bg-neutral-100 dark:bg-neutral-800 hover:bg-neutral-200 dark:hover:bg-neutral-700 text-neutral-800 dark:text-neutral-200 transition-colors cursor-pointer border border-neutral-200 dark:border-neutral-700"
-              >
-                {sample.label}
-              </button>
-            ))}
-          </div>
-        </div>
-      </div>
-
-      {/* Recent Analyzed Repositories */}
-      {recentRepos.length > 0 && (
-        <div className="space-y-3">
-          <div className="flex items-center justify-between text-xs font-semibold text-neutral-500 uppercase tracking-wider">
-            <span className="flex items-center gap-1.5">
-              <Clock className="w-3.5 h-3.5" />
-              <span>Recently Analyzed Repositories</span>
-            </span>
-            <span className="font-mono">{recentRepos.length} cached</span>
+          {/* Card 2: Issue Management */}
+          <div
+            onClick={() => navigate('/issues')}
+            className="p-5 rounded-2xl border border-[var(--color-border-default)] bg-[var(--color-bg-surface)] hover:border-[var(--color-brand-primary)] hover:shadow-sm transition-all cursor-pointer space-y-3 group"
+          >
+            <div className="w-10 h-10 rounded-xl bg-[var(--color-brand-primary-soft)] text-[var(--color-brand-primary)] flex items-center justify-center">
+              <Info className="w-5 h-5 stroke-[2.2]" />
+            </div>
+            <h3 className="font-bold text-base text-[var(--color-text-primary)] group-hover:text-[var(--color-brand-primary)] transition-colors">
+              Issue Management
+            </h3>
+            <p className="text-xs text-[var(--color-text-secondary)] leading-relaxed">
+              Find and understand issues quickly with smart summaries and priorities.
+            </p>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            {recentRepos.map((repo) => (
-              <div
-                key={repo.fullName}
-                onClick={() => handleSelectSample(repo.fullName)}
-                className="p-3.5 rounded-lg border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 hover:border-neutral-300 dark:hover:border-neutral-700 hover:shadow-xs transition-all cursor-pointer flex items-center justify-between"
-              >
-                <div className="min-w-0 pr-3">
-                  <div className="font-mono text-xs font-bold text-neutral-900 dark:text-neutral-100 truncate">
-                    {repo.fullName}
-                  </div>
-                  <div className="flex items-center gap-2 text-[11px] text-neutral-500 mt-1">
-                    <span>{repo.primaryLanguage}</span>
-                    <span aria-hidden="true">·</span>
-                    <span className="tabular-nums">★ {repo.stars.toLocaleString()}</span>
-                  </div>
-                </div>
-                <ArrowRight className="w-4 h-4 text-neutral-400 shrink-0" />
-              </div>
-            ))}
+          {/* Card 3: Project Structure */}
+          <div
+            onClick={() => navigate('/graph')}
+            className="p-5 rounded-2xl border border-[var(--color-border-default)] bg-[var(--color-bg-surface)] hover:border-[var(--color-brand-primary)] hover:shadow-sm transition-all cursor-pointer space-y-3 group"
+          >
+            <div className="w-10 h-10 rounded-xl bg-[var(--color-brand-primary-soft)] text-[var(--color-brand-primary)] flex items-center justify-center">
+              <GitBranch className="w-5 h-5 stroke-[2.2]" />
+            </div>
+            <h3 className="font-bold text-base text-[var(--color-text-primary)] group-hover:text-[var(--color-brand-primary)] transition-colors">
+              Project Structure
+            </h3>
+            <p className="text-xs text-[var(--color-text-secondary)] leading-relaxed">
+              Explore the codebase structure, key files, and dependencies at a glance.
+            </p>
+          </div>
+
+          {/* Card 4: AI Assistant */}
+          <div
+            onClick={() => navigate('/assistant')}
+            className="p-5 rounded-2xl border border-[var(--color-border-default)] bg-[var(--color-bg-surface)] hover:border-[var(--color-brand-primary)] hover:shadow-sm transition-all cursor-pointer space-y-3 group"
+          >
+            <div className="w-10 h-10 rounded-xl bg-[var(--color-brand-primary-soft)] text-[var(--color-brand-primary)] flex items-center justify-center">
+              <Sparkles className="w-5 h-5 stroke-[2.2]" />
+            </div>
+            <h3 className="font-bold text-base text-[var(--color-text-primary)] group-hover:text-[var(--color-brand-primary)] transition-colors">
+              AI Assistant
+            </h3>
+            <p className="text-xs text-[var(--color-text-secondary)] leading-relaxed">
+              Generate guides, get answers, and run the project locally with AI support.
+            </p>
           </div>
         </div>
-      )}
+      </section>
 
-      {/* Platform Capabilities Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 pt-4 border-t border-neutral-200 dark:border-neutral-800">
-        <div className="p-4 rounded-lg bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 space-y-2">
-          <Stethoscope className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
-          <h3 className="text-xs font-bold text-neutral-900 dark:text-neutral-100 uppercase tracking-wide">
-            Setup Doctor
-          </h3>
-          <p className="text-xs text-neutral-600 dark:text-neutral-400 leading-relaxed">
-            Extracts exact prerequisites, documented commands, and highlights inconsistencies between READMEs and package manifests.
-          </p>
+      {/* Popular Repositories Section matching the Screenshot */}
+      <section id="popular-repos" className="space-y-6 pt-4">
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="text-2xl font-bold tracking-tight text-[var(--color-text-primary)]">
+              Popular Repositories
+            </h2>
+            <p className="mt-1 text-sm text-[var(--color-text-muted)]">
+              Explore trending open-source projects and get started in seconds.
+            </p>
+          </div>
+
+          <button
+            onClick={() => handleSelectRepository('facebook/react')}
+            className="text-xs font-semibold text-[var(--color-brand-primary)] hover:underline flex items-center gap-1 cursor-pointer"
+          >
+            <span>View All</span>
+            <ArrowRight className="w-3.5 h-3.5" />
+          </button>
         </div>
 
-        <div className="p-4 rounded-lg bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 space-y-2">
-          <Layers className="w-5 h-5 text-blue-600 dark:text-blue-400" />
-          <h3 className="text-xs font-bold text-neutral-900 dark:text-neutral-100 uppercase tracking-wide">
-            Architecture Map
-          </h3>
-          <p className="text-xs text-neutral-600 dark:text-neutral-400 leading-relaxed">
-            Pins entrypoints, directory purposes, and provides a recommended 5-step reading path to master the core loops.
-          </p>
-        </div>
+        {/* Structured Data Table matching Screenshot */}
+        <div className="rounded-2xl border border-[var(--color-border-default)] bg-[var(--color-bg-surface)] overflow-hidden shadow-2xs">
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-xs">
+              <thead>
+                <tr className="border-b border-[var(--color-border-default)] bg-[var(--color-bg-surface-2)] text-[var(--color-text-muted)] font-semibold">
+                  <th className="py-3 px-5">Repository</th>
+                  <th className="py-3 px-4">Language</th>
+                  <th className="py-3 px-4">Stars</th>
+                  <th className="py-3 px-4">Updated</th>
+                  <th className="py-3 px-5 text-right">Action</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-[var(--color-border-subtle)]">
+                {popularRepositories.map((repo) => (
+                  <tr
+                    key={repo.fullName}
+                    onClick={() => handleSelectRepository(repo.fullName)}
+                    className="hover:bg-[var(--color-bg-surface-2)] transition-colors cursor-pointer group"
+                  >
+                    {/* Repository title and desc */}
+                    <td className="py-4 px-5">
+                      <div className="flex items-center gap-3">
+                        <div className={`w-8 h-8 rounded-lg flex items-center justify-center font-bold text-xs shrink-0 ${repo.iconBg}`}>
+                          {repo.name.charAt(0).toUpperCase()}
+                        </div>
+                        <div className="min-w-0">
+                          <span className="font-bold text-sm text-[var(--color-text-primary)] group-hover:text-[var(--color-brand-primary)] transition-colors">
+                            {repo.fullName}
+                          </span>
+                          <p className="text-xs text-[var(--color-text-muted)] truncate max-w-xs sm:max-w-md">
+                            {repo.description}
+                          </p>
+                        </div>
+                      </div>
+                    </td>
 
-        <div className="p-4 rounded-lg bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 space-y-2">
-          <Target className="w-5 h-5 text-purple-600 dark:text-purple-400" />
-          <h3 className="text-xs font-bold text-neutral-900 dark:text-neutral-100 uppercase tracking-wide">
-            Issue Discovery
-          </h3>
-          <p className="text-xs text-neutral-600 dark:text-neutral-400 leading-relaxed">
-            Identifies beginner-friendly issues mapped directly to affected files, test suites, and prerequisite knowledge.
-          </p>
-        </div>
+                    {/* Language Badge */}
+                    <td className="py-4 px-4 whitespace-nowrap">
+                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-semibold border ${repo.languageColor}`}>
+                        {repo.language}
+                      </span>
+                    </td>
 
-        <div className="p-4 rounded-lg bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 space-y-2">
-          <Download className="w-5 h-5 text-amber-600 dark:text-amber-400" />
-          <h3 className="text-xs font-bold text-neutral-900 dark:text-neutral-100 uppercase tracking-wide">
-            Markdown Export
-          </h3>
-          <p className="text-xs text-neutral-600 dark:text-neutral-400 leading-relaxed">
-            Generates a comprehensive <code className="font-mono text-[11px]">ONBOARDING.md</code> file ready for team check-in or personal study.
-          </p>
+                    {/* Stars */}
+                    <td className="py-4 px-4 whitespace-nowrap font-mono tabular-nums text-[var(--color-text-primary)]">
+                      <span className="flex items-center gap-1">
+                        <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
+                        <span>{repo.stars}</span>
+                      </span>
+                    </td>
+
+                    {/* Updated */}
+                    <td className="py-4 px-4 whitespace-nowrap text-[var(--color-text-muted)]">
+                      {repo.updated}
+                    </td>
+
+                    {/* Arrow Action */}
+                    <td className="py-4 px-5 text-right whitespace-nowrap">
+                      <ChevronRight className="w-4 h-4 text-[var(--color-text-muted)] group-hover:text-[var(--color-brand-primary)] group-hover:translate-x-0.5 transition-all inline-block" />
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
-      </div>
+      </section>
     </div>
   );
 };

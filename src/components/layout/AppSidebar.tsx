@@ -33,21 +33,21 @@ export const AppSidebar: React.FC = () => {
 
   return (
     <aside
-      className={`bg-white dark:bg-neutral-900 border-r border-neutral-200 dark:border-neutral-800 transition-all duration-200 flex flex-col shrink-0 select-none ${
+      className={`bg-[var(--color-bg-surface)] border-r border-[var(--color-border-default)] transition-all duration-200 flex flex-col shrink-0 select-none ${
         collapsed ? 'w-16' : 'w-60'
       }`}
     >
       {/* Top Sidebar title / toggle */}
-      <div className="h-12 border-b border-neutral-100 dark:border-neutral-800/80 px-3 flex items-center justify-between">
+      <div className="h-12 border-b border-[var(--color-border-subtle)] px-3 flex items-center justify-between">
         {!collapsed && (
-          <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-neutral-400">
+          <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-[var(--color-text-muted)]">
             <FolderGit2 className="w-3.5 h-3.5" />
-            <span>Navigation</span>
+            <span>Workspace</span>
           </div>
         )}
         <button
           onClick={() => setCollapsed(!collapsed)}
-          className={`p-1.5 rounded-md hover:bg-neutral-100 dark:hover:bg-neutral-800 text-neutral-500 hover:text-neutral-800 dark:hover:text-neutral-200 cursor-pointer ${
+          className={`p-1.5 rounded-md hover:bg-[var(--color-bg-surface-2)] text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)] cursor-pointer ${
             collapsed ? 'mx-auto' : ''
           }`}
           aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
@@ -60,15 +60,15 @@ export const AppSidebar: React.FC = () => {
       <nav className="flex-1 py-3 px-2 space-y-1">
         {navItems.map((item) => {
           const Icon = item.icon;
-          const isActive = location.pathname === item.to || (item.to === '/overview' && location.pathname === '/');
+          const isActive = location.pathname.startsWith(item.to);
           return (
             <NavLink
               key={item.to}
               to={item.to}
-              className={`flex items-center gap-3 px-3 py-2 rounded-md text-xs font-medium transition-colors ${
+              className={`flex items-center gap-3 px-3 py-2 rounded-lg text-xs font-semibold transition-colors ${
                 isActive
-                  ? 'bg-neutral-900 text-white dark:bg-neutral-100 dark:text-neutral-900 shadow-2xs font-semibold'
-                  : 'text-neutral-600 dark:text-neutral-400 hover:bg-neutral-100 dark:hover:bg-neutral-800 hover:text-neutral-900 dark:hover:text-neutral-100'
+                  ? 'bg-[var(--color-brand-primary-soft)] text-[var(--color-brand-primary)] shadow-2xs font-bold'
+                  : 'text-[var(--color-text-secondary)] hover:bg-[var(--color-bg-surface-2)] hover:text-[var(--color-text-primary)]'
               } ${collapsed ? 'justify-center px-0' : ''}`}
               title={collapsed ? item.label : undefined}
             >

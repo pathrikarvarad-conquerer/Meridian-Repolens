@@ -5,7 +5,6 @@ import {
   Moon, 
   Monitor, 
   Trash2, 
-  GraduationCap, 
   Building2, 
   ShieldCheck, 
   Cpu, 
@@ -13,7 +12,6 @@ import {
   Check
 } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
-import { useUserMode } from '../context/UserModeContext';
 import { useRepo } from '../context/RepoContext';
 import { useToast } from '../context/ToastContext';
 import { Card } from '../components/primitives/Card';
@@ -21,7 +19,6 @@ import { Button } from '../components/primitives/Button';
 
 export const SettingsPage: React.FC = () => {
   const { theme, setTheme } = useTheme();
-  const { mode, setMode } = useUserMode();
   const { recentRepos } = useRepo();
   const { addToast } = useToast();
 
@@ -86,47 +83,35 @@ export const SettingsPage: React.FC = () => {
         </div>
       </Card>
 
-      {/* Mode Setting */}
-      <Card title="User Experience Persona" subtitle="Tailor the presentation hierarchy to your technical objectives">
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div
-            onClick={() => setMode('beginner')}
-            className={`p-4 rounded-lg border text-left transition-all cursor-pointer space-y-2 ${
-              mode === 'beginner'
-                ? 'border-neutral-900 dark:border-neutral-100 bg-neutral-100 dark:bg-neutral-800'
-                : 'border-neutral-200 dark:border-neutral-800 hover:bg-neutral-50 dark:hover:bg-neutral-850'
-            }`}
-          >
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2 font-bold text-xs text-neutral-900 dark:text-neutral-100">
-                <GraduationCap className="w-4 h-4 text-blue-600 dark:text-blue-400" />
-                <span>Beginner Mode</span>
-              </div>
-              {mode === 'beginner' && <Check className="w-4 h-4 text-blue-600 dark:text-blue-400" />}
+      {/* Enterprise Platform Configuration */}
+      <Card title="Analysis & Governance Configuration" subtitle="Commit-pinned analysis and telemetry policies">
+        <div className="space-y-3 text-xs">
+          <div className="flex items-center justify-between p-3 rounded-xl bg-[var(--color-bg-surface-2)] border border-[var(--color-border-default)]">
+            <div>
+              <span className="font-semibold text-[var(--color-text-primary)] block">
+                Unified Enterprise Intelligence
+              </span>
+              <span className="text-[11px] text-[var(--color-text-muted)]">
+                All claims, dependencies, and setup findings are anchored to immutable commit SHAs with source line provenance.
+              </span>
             </div>
-            <p className="text-xs text-neutral-600 dark:text-neutral-400 leading-relaxed">
-              Focuses on plain-language concepts, guided 5-step reading order, step-by-step installation instructions, and good first issues.
-            </p>
+            <span className="text-[11px] font-mono font-medium text-[var(--color-status-verified-text)] bg-[var(--color-status-verified-bg)] px-2 py-0.5 rounded border border-[var(--color-status-verified-border)]">
+              Enforced
+            </span>
           </div>
 
-          <div
-            onClick={() => setMode('enterprise')}
-            className={`p-4 rounded-lg border text-left transition-all cursor-pointer space-y-2 ${
-              mode === 'enterprise'
-                ? 'border-neutral-900 dark:border-neutral-100 bg-neutral-100 dark:bg-neutral-800'
-                : 'border-neutral-200 dark:border-neutral-800 hover:bg-neutral-50 dark:hover:bg-neutral-850'
-            }`}
-          >
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2 font-bold text-xs text-neutral-900 dark:text-neutral-100">
-                <Building2 className="w-4 h-4 text-purple-600 dark:text-purple-400" />
-                <span>Enterprise Mode</span>
-              </div>
-              {mode === 'enterprise' && <Check className="w-4 h-4 text-purple-600 dark:text-purple-400" />}
+          <div className="flex items-center justify-between p-3 rounded-xl bg-[var(--color-bg-surface-2)] border border-[var(--color-border-default)]">
+            <div>
+              <span className="font-semibold text-[var(--color-text-primary)] block">
+                Zero-Secret Exposure Policy
+              </span>
+              <span className="text-[11px] text-[var(--color-text-muted)]">
+                Environment variables are audited for keys only. Actual values and tokens are never read, stored, or exported.
+              </span>
             </div>
-            <p className="text-xs text-neutral-600 dark:text-neutral-400 leading-relaxed">
-              Prioritizes commit SHA traceability, evidence verification status, configuration inconsistency audits, and dependency security matrices.
-            </p>
+            <span className="text-[11px] font-mono font-medium text-[var(--color-brand-primary)] bg-[var(--color-brand-primary-soft)] px-2 py-0.5 rounded border border-[var(--color-brand-primary)]/20">
+              Active
+            </span>
           </div>
         </div>
       </Card>

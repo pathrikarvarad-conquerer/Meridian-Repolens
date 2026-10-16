@@ -1,0 +1,6 @@
+{
+  "name": "RepoLens",
+  "description": "Understand your codebase, faster. Intelligent repository analysis, setup doctor, issue discovery, codebase intelligence, and onboarding guide export with verified evidence traceability.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

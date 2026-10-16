@@ -131,6 +131,7 @@ export const RepoProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
     setIsAnalyzing(false);
     setAnalysisProgress(null);
+    setError('Analysis was stopped by the user.');
   }, []);
 
   const applyAnalysisResponse = useCallback((res: AnalysisResponse) => {
@@ -168,6 +169,12 @@ export const RepoProvider: React.FC<{ children: React.ReactNode }> = ({ children
       return false;
     }
 
+    // Abort any existing in-flight analysis job
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+      abortControllerRef.current = null;
+    }
+
     setIsAnalyzing(true);
     setAnalysisProgress({ stageIndex: 0, stageTitle: 'Initializing repository analyzer...' });
 
@@ -182,14 +189,21 @@ export const RepoProvider: React.FC<{ children: React.ReactNode }> = ({ children
           signal: controller.signal
         },
         (stageIndex, stageTitle) => {
-          setAnalysisProgress({ stageIndex, stageTitle });
+          if (!controller.signal.aborted) {
+            setAnalysisProgress({ stageIndex, stageTitle });
+          }
         }
       );
+
+      // Do NOT commit state if cancelled
+      if (controller.signal.aborted) {
+        return false;
+      }
 
       applyAnalysisResponse(response);
       return true;
     } catch (err: any) {
-      if (err?.name === 'AbortError') {
+      if (err?.name === 'AbortError' || controller.signal.aborted) {
         setError('Analysis was stopped by the user.');
       } else {
         setError(err?.message || 'Failed to analyze repository. Please check the URL or try again.');
@@ -197,13 +211,19 @@ export const RepoProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setIsAnalyzing(false);
       setAnalysisProgress(null);
       return false;
+    } finally {
+      if (abortControllerRef.current === controller) {
+        abortControllerRef.current = null;
+      }
     }
   }, [applyAnalysisResponse]);
 
   const loadSampleRepo = useCallback((fullName: string) => {
     const key = fullName.toLowerCase();
     if (SAMPLE_REPOSITORIES[key]) {
-      applyAnalysisResponse(SAMPLE_REPOSITORIES[key]);
+      const sample = JSON.parse(JSON.stringify(SAMPLE_REPOSITORIES[key]));
+      sample.metadata.isSampleData = true;
+      applyAnalysisResponse(sample);
     } else {
       const [owner, repo] = fullName.split('/');
       if (owner && repo) {

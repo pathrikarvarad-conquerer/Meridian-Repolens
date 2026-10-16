@@ -7,7 +7,8 @@ import {
   Check, 
   ExternalLink,
   GitBranch,
-  GitCommit
+  GitCommit,
+  Play
 } from 'lucide-react';
 import { NavLink, useNavigate, useLocation } from 'react-router-dom';
 import { useTheme } from '../../context/ThemeContext';
@@ -26,6 +27,8 @@ export const AppHeader: React.FC = () => {
   const navLinks = [
     { to: '/', label: 'Home' },
     { to: '/overview', label: 'Repositories' },
+    { to: '/run', label: 'Run Online' },
+    { to: '/reels', label: 'Repo Reels' },
     { to: '/issues', label: 'Issues' },
     { to: '/graph', label: 'Dependencies' },
     { to: '/setup', label: 'Setup Doctor' },
@@ -80,6 +83,23 @@ export const AppHeader: React.FC = () => {
 
         {/* Right: Repository Quick Select, Theme Toggle, Profile */}
         <div className="flex items-center gap-3 shrink-0">
+          {currentRepo?.isSampleData && (
+            <span className="hidden sm:inline-flex items-center text-[10px] font-mono uppercase tracking-wider text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/60 border border-amber-200 dark:border-amber-800 px-2 py-0.5 rounded">
+              Demo/sample data
+            </span>
+          )}
+
+          {/* Quick Run Online Action Button */}
+          {currentRepo && (
+            <NavLink
+              to="/run"
+              className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold shadow-xs transition-colors cursor-pointer"
+              title="Run repository online in sandbox"
+            >
+              <Play className="w-3.5 h-3.5 fill-current" />
+              <span>Run Online</span>
+            </NavLink>
+          )}
 
           {/* Repository Selector Dropdown if active */}
           {currentRepo && (

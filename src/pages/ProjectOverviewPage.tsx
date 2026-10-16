@@ -30,7 +30,9 @@ import {
   TrendingUp,
   FileText,
   Shield,
-  Award
+  Award,
+  Film,
+  Play
 } from 'lucide-react';
 import { useRepo } from '../context/RepoContext';
 import { useEvidenceDrawer } from '../context/EvidenceDrawerContext';
@@ -141,7 +143,19 @@ export const ProjectOverviewPage: React.FC = () => {
             )}
           </div>
 
-          <div className="flex items-center gap-2.5 shrink-0 self-start lg:self-auto">
+          <div className="flex items-center gap-2.5 shrink-0 self-start lg:self-auto flex-wrap">
+            <Link to="/run">
+              <Button size="sm" variant="outline" className="flex items-center gap-1.5 font-semibold text-emerald-600 dark:text-emerald-400 border-emerald-300 dark:border-emerald-800 bg-emerald-50/50 dark:bg-emerald-950/20">
+                <Play className="w-3.5 h-3.5 fill-current" />
+                <span>Run Online</span>
+              </Button>
+            </Link>
+            <Link to="/reels">
+              <Button size="sm" variant="outline" className="flex items-center gap-1.5 font-semibold text-[var(--color-brand-primary)] border-[var(--color-border-default)]">
+                <Film className="w-3.5 h-3.5" />
+                <span>Repo Reels</span>
+              </Button>
+            </Link>
             <Link to="/setup">
               <Button size="sm" variant="outline">
                 Setup Doctor

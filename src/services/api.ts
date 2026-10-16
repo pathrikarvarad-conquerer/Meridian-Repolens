@@ -103,8 +103,13 @@ const LANGUAGE_COLORS: Record<string, string> = {
   Elixir: '#6e4a7e'
 };
 
-// In-memory analysis cache to prevent repeated rate-limit burns
-const ANALYSIS_CACHE = new Map<string, AnalysisResponse>();
+// In-memory analysis cache with TTL (10 minutes) and revision pinning
+interface CacheEntry {
+  data: AnalysisResponse;
+  timestamp: number;
+}
+const ANALYSIS_CACHE = new Map<string, CacheEntry>();
+const CACHE_TTL_MS = 10 * 60 * 1000;
 
 /**
  * Main API Service client
@@ -118,18 +123,12 @@ export const repoLensApi = {
     onProgress?: (stageIndex: number, stageTitle: string) => void
   ): Promise<AnalysisResponse> {
     const { owner, repo, signal } = options;
-    const repoKey = `${owner}/${repo}`.toLowerCase();
+    const safeOwner = encodeURIComponent(owner);
+    const safeRepo = encodeURIComponent(repo);
 
-    // Check memory cache
-    if (ANALYSIS_CACHE.has(repoKey)) {
-      const cached = ANALYSIS_CACHE.get(repoKey)!;
-      // Simulate quick stages
-      for (let i = 0; i < 5; i++) {
-        if (signal?.aborted) throw new DOMException('Analysis was cancelled by the user.', 'AbortError');
-        onProgress?.(i, `Extracting cached repository data (Stage ${i + 1}/5)`);
-        await new Promise((r) => setTimeout(r, 80));
-      }
-      return JSON.parse(JSON.stringify(cached));
+    // Initial check for cancellation
+    if (signal?.aborted) {
+      throw new DOMException('Analysis was cancelled by the user.', 'AbortError');
     }
 
     // Stages for visual feedback
@@ -154,69 +153,101 @@ export const repoLensApi = {
     let rawPackageJson: any = null;
     let rawEnvExample: string | null = null;
 
+    const headers = { 'Accept': 'application/vnd.github.v3+json' };
+
+    onProgress?.(0, stages[0]);
+
+    // Primary metadata fetch with explicit error handling (Rule 4)
+    let metaRes: globalThis.Response;
     try {
-      if (typeof fetch !== 'undefined') {
-        const headers = { 'Accept': 'application/vnd.github.v3+json' };
-        
-        onProgress?.(0, stages[0]);
-
-        // Primary metadata fetch
-        const metaRes = await fetch(`https://api.github.com/repos/${owner}/${repo}`, { signal, headers }).catch(() => null);
-        if (metaRes && metaRes.ok) {
-          githubMeta = await metaRes.json();
-        }
-
-        const defaultBranch = githubMeta?.default_branch || 'main';
-
-        onProgress?.(1, stages[1]);
-
-        // Secondary endpoints in parallel
-        const [langRes, commitRes, contribRes, releaseRes, issuesRes, pullsRes, treeRes, readmeRes, pkgRes, envRes] = await Promise.allSettled([
-          fetch(`https://api.github.com/repos/${owner}/${repo}/languages`, { signal, headers }),
-          fetch(`https://api.github.com/repos/${owner}/${repo}/commits?per_page=8`, { signal, headers }),
-          fetch(`https://api.github.com/repos/${owner}/${repo}/contributors?per_page=12`, { signal, headers }),
-          fetch(`https://api.github.com/repos/${owner}/${repo}/releases?per_page=5`, { signal, headers }),
-          fetch(`https://api.github.com/repos/${owner}/${repo}/issues?state=open&per_page=15`, { signal, headers }),
-          fetch(`https://api.github.com/repos/${owner}/${repo}/pulls?state=open&per_page=1`, { signal, headers }),
-          fetch(`https://api.github.com/repos/${owner}/${repo}/git/trees/${defaultBranch}?recursive=1`, { signal, headers }),
-          fetch(`https://raw.githubusercontent.com/${owner}/${repo}/${defaultBranch}/README.md`, { signal }),
-          fetch(`https://raw.githubusercontent.com/${owner}/${repo}/${defaultBranch}/package.json`, { signal }),
-          fetch(`https://raw.githubusercontent.com/${owner}/${repo}/${defaultBranch}/.env.example`, { signal })
-        ]);
-
-        if (langRes.status === 'fulfilled' && langRes.value.ok) {
-          githubLanguages = await langRes.value.json().catch(() => null);
-        }
-        if (commitRes.status === 'fulfilled' && commitRes.value.ok) {
-          githubCommits = await commitRes.value.json().catch(() => []);
-        }
-        if (contribRes.status === 'fulfilled' && contribRes.value.ok) {
-          githubContributors = await contribRes.value.json().catch(() => []);
-        }
-        if (releaseRes.status === 'fulfilled' && releaseRes.value.ok) {
-          githubReleases = await releaseRes.value.json().catch(() => []);
-        }
-        if (issuesRes.status === 'fulfilled' && issuesRes.value.ok) {
-          githubIssues = await issuesRes.value.json().catch(() => []);
-        }
-        if (pullsRes.status === 'fulfilled' && pullsRes.value.ok) {
-          githubPulls = await pullsRes.value.json().catch(() => []);
-        }
-        if (treeRes.status === 'fulfilled' && treeRes.value.ok) {
-          gitTreeData = await treeRes.value.json().catch(() => null);
-        }
-        if (readmeRes.status === 'fulfilled' && readmeRes.value.ok) {
-          rawReadme = await readmeRes.value.text().catch(() => null);
-        }
-        if (pkgRes.status === 'fulfilled' && pkgRes.value.ok) {
-          rawPackageJson = await pkgRes.value.json().catch(() => null);
-        }
-        if (envRes.status === 'fulfilled' && envRes.value.ok) {
-          rawEnvExample = await envRes.value.text().catch(() => null);
-        }
+      metaRes = await fetch(`https://api.github.com/repos/${safeOwner}/${safeRepo}`, { signal, headers });
+    } catch (fetchErr: any) {
+      if (signal?.aborted || fetchErr?.name === 'AbortError') {
+        throw new DOMException('Analysis was cancelled by the user.', 'AbortError');
       }
-    } catch {
-      // Graceful network or rate-limit recovery
+      throw new Error(`Network failure connecting to GitHub: ${fetchErr?.message || 'Check your internet connection'}`);
+    }
+
+    if (!metaRes.ok) {
+      if (metaRes.status === 404) {
+        throw new Error(`GitHub repository "${owner}/${repo}" was not found or is private/inaccessible.`);
+      }
+      if (metaRes.status === 403 || metaRes.status === 429) {
+        throw new Error('GitHub API rate limit exceeded. Please wait a few moments before trying again or configure an authenticated token.');
+      }
+      throw new Error(`GitHub API request failed with HTTP ${metaRes.status}: ${metaRes.statusText}`);
+    }
+
+    githubMeta = await metaRes.json();
+    const defaultBranch = githubMeta?.default_branch || 'main';
+
+    if (signal?.aborted) {
+      throw new DOMException('Analysis was cancelled by the user.', 'AbortError');
+    }
+
+    onProgress?.(1, stages[1]);
+
+    // Secondary endpoints in parallel
+    const [langRes, commitRes, contribRes, releaseRes, issuesRes, pullsRes, treeRes, readmeRes, pkgRes, envRes] = await Promise.allSettled([
+      fetch(`https://api.github.com/repos/${safeOwner}/${safeRepo}/languages`, { signal, headers }),
+      fetch(`https://api.github.com/repos/${safeOwner}/${safeRepo}/commits?per_page=8`, { signal, headers }),
+      fetch(`https://api.github.com/repos/${safeOwner}/${safeRepo}/contributors?per_page=12`, { signal, headers }),
+      fetch(`https://api.github.com/repos/${safeOwner}/${safeRepo}/releases?per_page=5`, { signal, headers }),
+      fetch(`https://api.github.com/repos/${safeOwner}/${safeRepo}/issues?state=open&per_page=15`, { signal, headers }),
+      fetch(`https://api.github.com/repos/${safeOwner}/${safeRepo}/pulls?state=open&per_page=10`, { signal, headers }),
+      fetch(`https://api.github.com/repos/${safeOwner}/${safeRepo}/git/trees/${encodeURIComponent(defaultBranch)}?recursive=1`, { signal, headers }),
+      fetch(`https://raw.githubusercontent.com/${safeOwner}/${safeRepo}/${encodeURIComponent(defaultBranch)}/README.md`, { signal }),
+      fetch(`https://raw.githubusercontent.com/${safeOwner}/${safeRepo}/${encodeURIComponent(defaultBranch)}/package.json`, { signal }),
+      fetch(`https://raw.githubusercontent.com/${safeOwner}/${safeRepo}/${encodeURIComponent(defaultBranch)}/.env.example`, { signal })
+    ]);
+
+    if (signal?.aborted) {
+      throw new DOMException('Analysis was cancelled by the user.', 'AbortError');
+    }
+
+    if (langRes.status === 'fulfilled' && langRes.value.ok) {
+      githubLanguages = await langRes.value.json().catch(() => null);
+    }
+    if (commitRes.status === 'fulfilled' && commitRes.value.ok) {
+      githubCommits = await commitRes.value.json().catch(() => []);
+    }
+    if (contribRes.status === 'fulfilled' && contribRes.value.ok) {
+      githubContributors = await contribRes.value.json().catch(() => []);
+    }
+    if (releaseRes.status === 'fulfilled' && releaseRes.value.ok) {
+      githubReleases = await releaseRes.value.json().catch(() => []);
+    }
+    if (issuesRes.status === 'fulfilled' && issuesRes.value.ok) {
+      githubIssues = await issuesRes.value.json().catch(() => []);
+    }
+    if (pullsRes.status === 'fulfilled' && pullsRes.value.ok) {
+      githubPulls = await pullsRes.value.json().catch(() => []);
+    }
+    if (treeRes.status === 'fulfilled' && treeRes.value.ok) {
+      gitTreeData = await treeRes.value.json().catch(() => null);
+    }
+    if (readmeRes.status === 'fulfilled' && readmeRes.value.ok) {
+      rawReadme = await readmeRes.value.text().catch(() => null);
+    }
+    if (pkgRes.status === 'fulfilled' && pkgRes.value.ok) {
+      rawPackageJson = await pkgRes.value.json().catch(() => null);
+    }
+    if (envRes.status === 'fulfilled' && envRes.value.ok) {
+      rawEnvExample = await envRes.value.text().catch(() => null);
+    }
+
+    // Resolve full commit SHA (Rule 5)
+    const fullCommitSha: string = Array.isArray(githubCommits) && githubCommits[0]?.sha
+      ? String(githubCommits[0].sha)
+      : 'unresolved';
+
+    // Check revision-pinned cache before synthesizing
+    const cacheKey = `${owner}/${repo}@${fullCommitSha}`.toLowerCase();
+    if (ANALYSIS_CACHE.has(cacheKey)) {
+      const entry = ANALYSIS_CACHE.get(cacheKey)!;
+      if (Date.now() - entry.timestamp < CACHE_TTL_MS) {
+        return JSON.parse(JSON.stringify(entry.data));
+      }
     }
 
     onProgress?.(2, stages[2]);
@@ -371,18 +402,20 @@ export const repoLensApi = {
     }
 
     onProgress?.(4, stages[4]);
-    await new Promise((r) => setTimeout(r, 120));
+    await new Promise((r) => setTimeout(r, 100));
 
-    // Retrieve or dynamically generate grounded analysis
-    const result = SAMPLE_REPOSITORIES[repoKey] 
-      ? JSON.parse(JSON.stringify(SAMPLE_REPOSITORIES[repoKey]))
-      : generateRepositoryAnalysis(owner, repo, liveStats, {
-          treeItems,
-          rawReadme,
-          rawPackageJson,
-          rawEnvExample,
-          githubIssues: Array.isArray(githubIssues) ? githubIssues : []
-        });
+    if (signal?.aborted) {
+      throw new DOMException('Analysis was cancelled by the user.', 'AbortError');
+    }
+
+    // Dynamically generate grounded analysis from extracted repository manifests and tree items
+    const result = generateRepositoryAnalysis(owner, repo, liveStats, {
+      treeItems,
+      rawReadme,
+      rawPackageJson,
+      rawEnvExample,
+      githubIssues: Array.isArray(githubIssues) ? githubIssues : []
+    });
 
     // Apply live stats to result
     if (Object.keys(liveStats).length > 0) {
@@ -435,7 +468,7 @@ export const repoLensApi = {
                 evidence: {
                   id: `ev-iss-${iss.number}-f`,
                   claim: `Issue #${iss.number} correlates with ${matchingEntry.path}`,
-                  status: 'verified',
+                  status: 'verified' as const,
                   sourcePath: matchingEntry.path,
                   lineNumber: 1,
                   explanation: `Associated file in repository tree for #${iss.number}`,
@@ -451,7 +484,7 @@ export const repoLensApi = {
                 evidence: t.evidence
               })),
             assignedTo: iss.assignee?.login || undefined,
-            status: 'open',
+            status: 'open' as const,
             commentsCount: iss.comments ?? 0,
             createdAt: iss.created_at,
             author: iss.user?.login || 'Contributor'
@@ -460,8 +493,12 @@ export const repoLensApi = {
       }
     }
 
-    // Cache result
-    ANALYSIS_CACHE.set(repoKey, result);
+    if (signal?.aborted) {
+      throw new DOMException('Analysis was cancelled by the user.', 'AbortError');
+    }
+
+    // Cache verified live result by normalized owner/repo + full SHA with TTL
+    ANALYSIS_CACHE.set(cacheKey, { data: result, timestamp: Date.now() });
 
     return result;
   },
@@ -477,6 +514,7 @@ export const repoLensApi = {
     setupDoctor: SetupDoctorData,
     history: ChatMessage[],
     graph?: CodebaseGraphData | null,
+    issues: RecommendedIssue[] = []
   ): Promise<{ 
     response: string; 
     evidence: Evidence[]; 
@@ -537,7 +575,49 @@ export const repoLensApi = {
     const runCmd = setupDoctor.runCommands[0]?.command || 'npm run dev';
     const buildCmd = setupDoctor.runCommands?.find((c: any) => c.command.includes('build'))?.command || 'npm run build';
 
-    // 1. Specific Issue investigation by number or title
+    // 1. Temporal & Date Queries (e.g., "What is today date", "What time is it")
+    if (/\b(date|today|current day|day of week|time|what day|what year|what month|what is today)\b/i.test(q)) {
+      const now = new Date();
+      const formattedDate = now.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+      const formattedTime = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', timeZoneName: 'short' });
+      return {
+        response: `Today is **${formattedDate}** (current server time: **${formattedTime}**).
+
+I am **RepoLens Assistant**, currently paired with repository **\`${fullName}\`** on branch \`${metadata.defaultBranch || 'main'}\` (\`${shortSha}\`).
+
+Feel free to ask me questions about this codebase's architecture, dependencies, setup instructions, open issues, or general software engineering topics!`,
+        evidence: [entry.evidence],
+        suggestedFollowUps: [
+          `Explain the architecture of ${repoName}`,
+          `How do I run tests for ${repoName}?`,
+          `Which open issues can I help solve?`
+        ]
+      };
+    }
+
+    // 2. Greetings & Assistant Identity
+    if (/^(hi|hello|hey|greetings|who are you|what can you do|what is your name)\b/i.test(q)) {
+      return {
+        response: `Hello! I am **RepoLens Assistant**, your AI software architect and codebase intelligence copilot for **\`${fullName}\`**.
+
+Here is what I can help you with:
+- **Architecture Exploration:** Deep dives into modules, dependencies, and execution entry points.
+- **Setup Doctor:** Step-by-step local setup, prerequisite verification, and dev server commands.
+- **Issue Resolution:** Blueprints, reproduction unit tests, and candidate patches for open issues.
+- **Codebase Scale & Contributors:** Line-of-code statistics, top authors, and commit velocity.
+- **General Programming:** Questions on algorithms, language syntax, design patterns, and debugging.
+
+What would you like to explore first?`,
+        evidence: [entry.evidence],
+        suggestedFollowUps: [
+          `How do I set up ${repoName} locally?`,
+          `Explain the module structure of ${repoName}`,
+          `Show me the open issues recommended for beginners`
+        ]
+      };
+    }
+
+    // 3. Specific Issue investigation by number or title
     const issueNumberMatch = q.match(/(?:issue\s*#?|#)(\d+)/);
     if (issueNumberMatch) {
       const num = issueNumberMatch[1];
@@ -862,8 +942,8 @@ ${health?.metrics?.map((m: any) => `- **${m.name}:** ${m.score}/${m.max} (${m.de
       };
     }
 
-    // 9. Architecture & File Reading Path
-    if (q.includes('architecture') || q.includes('entry') || q.includes('flow') || q.includes('structure') || q.includes('read') || q.includes('path') || q.includes('overview') || q.includes('what is') || q.includes('explain project')) {
+    // 11. Architecture, Reading Path, and High-Level Structure (bounded regex, NO 'what is' trigger)
+    if (/\b(architecture|reading path|entry point|entrypoint|module flow|system design|layering|explain architecture|how is it structured)\b/i.test(q)) {
       const steps = overview.readingPath?.map((s: any) => `${s.step}. **\`${s.path}\`** — *${s.title}*: ${s.purpose}`).join('\n') || `1. **\`${entry.path}\`**: ${entry.purpose}`;
       const dirs = overview.keyDirectories?.map((d: any) => `- **\`${d.path}\`**: ${d.role} (${d.fileCount || 10} files)`).join('\n') || `- **\`src\`**: Core implementation`;
       return {
@@ -894,22 +974,22 @@ ${steps}
       };
     }
 
-    // 10. Default dynamic handler tailored to the user's query
+    // 12. Dynamic Query Synthesis for general programming or bespoke questions
     return {
-      response: `### Response for **${fullName}**
+      response: `### Technical Guidance: "${query}"
 
-Regarding your query: *"${query}"*
+Regarding your query in the context of **${fullName}**:
 
 - **Repository Context:** \`${fullName}\` on branch \`${metadata.defaultBranch || 'main'}\` (\`${shortSha}\`)
-- **Primary Language:** ${lang}
-- **Entry Module:** \`${entry.path}\` — ${entry.purpose}
-- **Verified Test Command:** \`${testCmd}\`
-- **Local Dev Server:** \`${runCmd}\`
+- **Primary Runtime:** ${lang}
+- **Entry Module:** \`${entry.path}\` (${entry.purpose})
 
-#### Key Modules to Explore:
-${graph?.nodes?.slice(0, 4).map((n: any) => `- **${n.name}** (\`${n.path}\`): ${n.description}`).join('\n') || `- **${entry.path}**: Main entry point`}
+#### Implementation & Exploration Tips:
+- For setup instructions, run \`${instCmd}\` followed by \`${runCmd}\`.
+- To verify behavior, execute the repository test suite via \`${testCmd}\`.
+- Key functional modules can be examined in \`${overview.keyDirectories[0]?.path || 'src'}\`.
 
-Feel free to ask for step-by-step code solutions, test commands, architecture deep dives, or specific issue walkthroughs.`,
+If you would like a code implementation, test reproduction, or specific file walkthrough for this topic, let me know!`,
       evidence: [entry.evidence],
       suggestedFollowUps: [
         `How do I run tests for ${repoName}?`,

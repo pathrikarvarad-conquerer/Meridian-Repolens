@@ -120,6 +120,7 @@ export interface RepositoryMetadata {
   recentCommits?: RepoCommit[];
   healthScore?: RepoHealthScore;
   codebaseStats?: CodebaseScaleStats;
+  isSampleData?: boolean;
 }
 
 export interface TechStackItem {

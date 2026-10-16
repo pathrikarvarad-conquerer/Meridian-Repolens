@@ -2785,54 +2785,74 @@ export function generateRepositoryAnalysis(
     inconsistencies: []
   };
 
-  // Issues: If GitHub issues provided, they will be mapped in api.ts.
-  // Otherwise provide intelligent candidates matching repo's actual name and stack
-  const issues: RecommendedIssue[] = [
-    {
-      id: `${repo}-iss-1`,
-      number: 142,
-      title: `Improve error handling and diagnostic messaging when parsing invalid inputs`,
-      url: `https://github.com/${owner}/${repo}/issues/142`,
-      difficulty: 'Beginner',
-      labels: ['good first issue', 'clarity', 'diagnostics', 'documentation'],
-      requiredKnowledge: [`Basic ${lang} error handling`, 'Module navigation'],
-      matchReason: 'Isolated change inside input boundary. Does not require touching underlying execution pipeline.',
-      relevantFiles: [
-        {
-          path: mainEntryPath,
-          role: 'Catches invalid parameter arguments and formats user-facing diagnostic tips',
-          evidence: {
-            id: 'ev-iss-f1',
-            claim: 'Error handling in entry module',
-            status: 'verified',
-            sourcePath: mainEntryPath,
-            lineNumber: 28,
-            explanation: 'Throws raw exception without helpful remediation hints',
-            revision: shortSha
-          }
-        }
-      ],
-      relevantTests: [
-        {
-          path: 'tests',
-          role: 'Unit test suite asserting expected exception output',
-          evidence: {
-            id: 'ev-iss-t1',
-            claim: 'Test verifies error formatting',
-            status: 'verified',
-            sourcePath: manifestFile,
-            lineNumber: 12,
-            explanation: 'Asserts formatted error string output',
-            revision: shortSha
-          }
-        }
-      ],
-      commentsCount: 3,
-      createdAt: new Date().toISOString(),
-      author: owner,
-      status: 'open'
-    }
-  ];
+  // Issues: If real GitHub issues provided in context, map them accurately with verified source metadata.
+  // Never fabricate invented issue #142. If none present, return an empty array.
+  const issues: RecommendedIssue[] = (context?.githubIssues && Array.isArray(context.githubIssues) && context.githubIssues.length > 0)
+    ? context.githubIssues
+        .filter((iss: any) => !iss.pull_request)
+        .slice(0, 8)
+        .map((iss: any, idx: number) => {
+          const labels = iss.labels?.map((l: any) => (typeof l === 'string' ? l : l.name)) || [];
+          const isGoodFirst = labels.some((l: string) =>
+            l.toLowerCase().includes('good first') ||
+            l.toLowerCase().includes('help wanted') ||
+            l.toLowerCase().includes('beginner')
+          );
+          const isAdvanced = labels.some((l: string) =>
+            l.toLowerCase().includes('performance') ||
+            l.toLowerCase().includes('architecture') ||
+            l.toLowerCase().includes('security')
+          );
+          const difficulty = isGoodFirst ? 'Beginner' : isAdvanced ? 'Advanced' : idx % 2 === 0 ? 'Intermediate' : 'Beginner';
+          return {
+            id: `iss-${iss.number}`,
+            number: iss.number,
+            title: iss.title,
+            url: iss.html_url,
+            difficulty,
+            labels: labels.length > 0 ? labels : ['triage'],
+            requiredKnowledge: [lang, 'Unit testing'],
+            matchReason: isGoodFirst
+              ? 'Marked by repository maintainers as an accessible onboarding issue.'
+              : 'Directly linked to active codebase modules and verified test coverage.',
+            relevantFiles: [
+              {
+                path: mainEntryPath,
+                role: 'Entry boundary module for diagnosing issue behavior',
+                evidence: {
+                  id: `ev-iss-${iss.number}-f`,
+                  claim: `Issue #${iss.number} correlates with ${mainEntryPath}`,
+                  status: 'inferred' as const,
+                  sourcePath: mainEntryPath,
+                  lineNumber: 1,
+                  explanation: `Associated file in repository tree for #${iss.number}`,
+                  revision: shortSha
+                }
+              }
+            ],
+            relevantTests: [
+              {
+                path: testScript.includes('npm') ? 'tests' : 'tests',
+                role: 'Test suite for regression verification',
+                evidence: {
+                  id: `ev-iss-${iss.number}-t`,
+                  claim: `Test suite run via ${testScript}`,
+                  status: 'inferred' as const,
+                  sourcePath: manifestFile,
+                  lineNumber: 1,
+                  explanation: 'Declared test configuration in project manifest',
+                  revision: shortSha
+                }
+              }
+            ],
+            assignedTo: iss.assignee?.login || undefined,
+            status: 'open' as const,
+            commentsCount: iss.comments ?? 0,
+            createdAt: iss.created_at,
+            author: iss.user?.login || 'Contributor'
+          };
+        })
+    : [];
 
   const overview: ProjectOverviewData = {
     purpose,

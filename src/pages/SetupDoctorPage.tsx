@@ -9,8 +9,10 @@ import {
   Info, 
   Key, 
   ExternalLink,
-  FileCheck
+  FileCheck,
+  Play
 } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import { useRepo } from '../context/RepoContext';
 import { useEvidenceDrawer } from '../context/EvidenceDrawerContext';
 import { useToast } from '../context/ToastContext';
@@ -69,6 +71,22 @@ export const SetupDoctorPage: React.FC = () => {
               {setupDoctor.executionDisclaimer} Commands are verified for structural presence in repository manifests and documentation files. RepoLens never executes arbitrary repository code or claims tests have passed without running them in an authenticated sandbox.
             </p>
           </div>
+        </div>
+
+        {/* Online Runtime Environment Launch Banner */}
+        <div className="mt-3 p-3.5 rounded-lg border border-emerald-300 dark:border-emerald-800 bg-emerald-50/50 dark:bg-emerald-950/20 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div className="flex items-center gap-2.5">
+            <Play className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0 fill-current" />
+            <span className="text-xs text-neutral-800 dark:text-neutral-200">
+              Want to run and test these commands live? Execute <strong>{currentRepo.name}</strong> inside the RepoLens browser micro-sandbox.
+            </span>
+          </div>
+          <Link to="/run" className="shrink-0">
+            <Button size="sm" variant="primary" className="bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold flex items-center gap-1.5 shadow-xs">
+              <Play className="w-3 h-3 fill-current" />
+              <span>Launch Sandbox</span>
+            </Button>
+          </Link>
         </div>
       </div>
 

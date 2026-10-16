@@ -12,7 +12,9 @@ import {
   ChevronRight,
   ShieldCheck,
   CheckCircle2,
-  FolderGit2
+  FolderGit2,
+  Film,
+  PlayCircle
 } from 'lucide-react';
 import { useRepo } from '../../context/RepoContext';
 
@@ -23,6 +25,8 @@ export const AppSidebar: React.FC = () => {
 
   const navItems = [
     { to: '/overview', label: 'Project Overview', icon: LayoutDashboard },
+    { to: '/run', label: 'Run Online', icon: PlayCircle },
+    { to: '/reels', label: 'Repo Reels', icon: Film },
     { to: '/setup', label: 'Setup Doctor', icon: Stethoscope },
     { to: '/issues', label: 'Recommended Issues', icon: Target },
     { to: '/graph', label: 'Codebase Graph', icon: Network },

@@ -26,12 +26,51 @@ import { parseGitHubUrl } from '../services/api';
 export const HomePage: React.FC = () => {
   const [repoInput, setRepoInput] = useState('');
   const [inputError, setInputError] = useState<string | null>(null);
+  const [showOnboarding, setShowOnboarding] = useState(false);
+  const [pendingRepo, setPendingRepo] = useState<string | null>(null);
+
+  // Goal-based onboarding state (T1 #2, #11)
+  const [goal, setGoal] = useState<'architecture' | 'setup' | 'contribution' | 'reels'>('architecture');
+  const [experience, setExperience] = useState<'beginner' | 'intermediate' | 'experienced'>('intermediate');
+  const [focus, setFocus] = useState<'architecture' | 'dependencies' | 'setup' | 'issues'>('architecture');
+
   const { analyzeRepo, isAnalyzing, analysisProgress, loadSampleRepo, cancelAnalysis } = useRepo();
   const { addToast } = useToast();
   const { resolvedTheme } = useTheme();
   const navigate = useNavigate();
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const executeAnalysis = async (targetRepo: string, chosenGoal: string) => {
+    // Save onboarding session preferences
+    try {
+      sessionStorage.setItem('repolens-user-goal', chosenGoal);
+      sessionStorage.setItem('repolens-user-experience', experience);
+      sessionStorage.setItem('repolens-user-focus', focus);
+    } catch {
+      // Ignored
+    }
+
+    const success = await analyzeRepo(targetRepo);
+    if (success) {
+      addToast({
+        type: 'success',
+        title: 'Repository Analyzed',
+        message: 'Loaded architecture, setup doctor, and issue intelligence.'
+      });
+
+      // Tailored routing based on selected goal
+      if (chosenGoal === 'setup') {
+        navigate('/setup');
+      } else if (chosenGoal === 'contribution') {
+        navigate('/issues');
+      } else if (chosenGoal === 'reels') {
+        navigate('/reels');
+      } else {
+        navigate('/overview');
+      }
+    }
+  };
+
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setInputError(null);
 
@@ -41,15 +80,8 @@ export const HomePage: React.FC = () => {
       return;
     }
 
-    const success = await analyzeRepo(repoInput);
-    if (success) {
-      addToast({
-        type: 'success',
-        title: 'Repository Analyzed',
-        message: 'Loaded architecture, setup doctor, and issue intelligence.'
-      });
-      navigate('/overview');
-    }
+    setPendingRepo(repoInput);
+    setShowOnboarding(true);
   };
 
   const handleSelectRepository = (fullName: string) => {
@@ -484,6 +516,103 @@ export const HomePage: React.FC = () => {
           </div>
         </div>
       </section>
+
+      {/* Optional Goal-Based Onboarding Modal (T1 #2, #11) */}
+      {showOnboarding && pendingRepo && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs">
+          <div className="w-full max-w-lg rounded-2xl border border-[var(--color-border-default)] bg-[var(--color-bg-surface)] p-6 shadow-2xl space-y-5 animate-in fade-in zoom-in-95 duration-150">
+            <div>
+              <span className="text-[11px] font-mono uppercase tracking-wider text-[var(--color-brand-primary)] font-semibold">
+                Onboarding Triage (Optional)
+              </span>
+              <h3 className="text-lg font-bold text-[var(--color-text-primary)]">
+                Tailor Your Codebase Onboarding
+              </h3>
+              <p className="text-xs text-[var(--color-text-muted)] mt-1">
+                Analyzing <strong className="text-[var(--color-text-primary)]">{pendingRepo}</strong>. Select your goal to jump straight to what matters most.
+              </p>
+            </div>
+
+            {/* Question 1: Goal */}
+            <div className="space-y-2">
+              <label className="text-xs font-semibold text-[var(--color-text-primary)]">
+                1. What is your primary goal?
+              </label>
+              <div className="grid grid-cols-2 gap-2 text-xs">
+                {[
+                  { id: 'architecture', label: 'Understand Architecture', desc: 'Overview & system layering' },
+                  { id: 'setup', label: 'Set Up Locally', desc: 'Prerequisites & run commands' },
+                  { id: 'contribution', label: 'Find First Contribution', desc: 'Curated beginner issues' },
+                  { id: 'reels', label: 'Explore Codebase (Reels)', desc: 'Interactive step-by-step tour' }
+                ].map((item) => (
+                  <button
+                    key={item.id}
+                    type="button"
+                    onClick={() => setGoal(item.id as any)}
+                    className={`p-2.5 rounded-xl border text-left transition-all cursor-pointer ${
+                      goal === item.id
+                        ? 'border-[var(--color-brand-primary)] bg-[var(--color-brand-primary-soft)] text-[var(--color-brand-primary)]'
+                        : 'border-[var(--color-border-default)] hover:bg-[var(--color-bg-surface-2)] text-[var(--color-text-secondary)]'
+                    }`}
+                  >
+                    <div className="font-semibold">{item.label}</div>
+                    <div className="text-[10px] text-[var(--color-text-muted)] mt-0.5">{item.desc}</div>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Question 2: Experience Level */}
+            <div className="space-y-2">
+              <label className="text-xs font-semibold text-[var(--color-text-primary)]">
+                2. Your familiarity with this stack?
+              </label>
+              <div className="grid grid-cols-3 gap-2 text-xs">
+                {(['beginner', 'intermediate', 'experienced'] as const).map((lvl) => (
+                  <button
+                    key={lvl}
+                    type="button"
+                    onClick={() => setExperience(lvl)}
+                    className={`py-2 px-3 rounded-lg border text-center capitalize transition-all cursor-pointer ${
+                      experience === lvl
+                        ? 'border-[var(--color-brand-primary)] bg-[var(--color-brand-primary-soft)] font-semibold text-[var(--color-brand-primary)]'
+                        : 'border-[var(--color-border-default)] hover:bg-[var(--color-bg-surface-2)] text-[var(--color-text-secondary)]'
+                    }`}
+                  >
+                    {lvl}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Modal Actions */}
+            <div className="pt-3 border-t border-[var(--color-border-subtle)] flex items-center justify-between gap-3">
+              <button
+                type="button"
+                onClick={() => {
+                  setShowOnboarding(false);
+                  executeAnalysis(pendingRepo, 'architecture');
+                }}
+                className="px-4 py-2 rounded-lg text-xs font-medium text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)] hover:bg-[var(--color-bg-surface-2)] transition-colors cursor-pointer"
+              >
+                Skip & Analyze Default
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setShowOnboarding(false);
+                  executeAnalysis(pendingRepo, goal);
+                }}
+                className="px-5 py-2 rounded-lg text-xs font-semibold bg-[var(--color-brand-primary)] text-white hover:bg-[var(--color-brand-primary-hover)] transition-all shadow-xs cursor-pointer flex items-center gap-1.5"
+              >
+                <span>Start Tailored Analysis</span>
+                <ArrowRight className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
